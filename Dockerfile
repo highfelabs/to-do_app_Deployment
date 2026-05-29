@@ -27,6 +27,9 @@ HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
 
 RUN useradd -m appuser
 
+# Create persistent data directory
+RUN mkdir -p /app/data && chown -R appuser:appuser /app/data
+
 # Give appuser ownership of app files
 RUN chown -R appuser:appuser /app
 
