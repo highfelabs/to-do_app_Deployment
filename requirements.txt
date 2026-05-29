@@ -1,0 +1,5 @@
+Flask
+flask-sqlalchemy>=3.1
+# For RDS (PostgreSQL) — uncomment when deploying to AWS:
+# psycopg2-binary>=2.9
+# python-dotenv>=1.0

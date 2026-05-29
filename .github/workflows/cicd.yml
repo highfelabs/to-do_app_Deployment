@@ -1,0 +1,105 @@
+name: Deploy to EC2 using ECR
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: to-do_app
+  ECR_REGISTRY: 704225640883.dkr.ecr.us-east-1.amazonaws.com
+  IMAGE_TAG: v1
+
+jobs:
+
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+
+    # - name: Run Tests
+    #   run: |
+    #     pytest
+
+  docker:
+
+    needs: test
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build Docker Image
+      run: |
+        docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+
+    - name: Tag Docker Image
+      run: |
+        docker tag $ECR_REPOSITORY:$IMAGE_TAG \
+        $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Push Docker Image
+      run: |
+        docker push \
+        $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+  deploy:
+
+    needs: docker
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Deploy to EC2 using SSM
+      run: |
+        aws ssm send-command \
+          --instance-ids "i-07b8b37802d0680e6" \
+          --document-name "AWS-RunShellScript" \
+          --comment "Deploy Docker App" \
+          --parameters '{
+            "commands":[
+              "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 704225640883.dkr.ecr.us-east-1.amazonaws.com",
+              "docker pull 704225640883.dkr.ecr.us-east-1.amazonaws.com/to-do_app:v1",
+              "docker stop myapp || true",
+              "docker rm myapp || true",
+              "docker run -d --name myapp -p 5000:5000 704225640883.dkr.ecr.us-east-1.amazonaws.com/to-do_app:v1"
+            ]
+        }'

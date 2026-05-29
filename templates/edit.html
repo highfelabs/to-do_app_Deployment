@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Edit Task</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root { --bg:#f5f5f3; --card:#fff; --border:#e0e0dd; --accent:#3b5bdb; --radius:10px; }
+    body { font-family:system-ui,-apple-system,sans-serif; background:var(--bg); min-height:100vh; padding:2rem 1rem; }
+    .wrap { max-width:520px; margin:0 auto; }
+    h1 { font-size:20px; font-weight:600; margin-bottom:1.5rem; display:flex; align-items:center; gap:8px; }
+    .card { background:var(--card); border:0.5px solid var(--border); border-radius:var(--radius); padding:20px; }
+    .field { margin-bottom:14px; }
+    label { display:block; font-size:13px; font-weight:500; color:#555; margin-bottom:5px; }
+    input[type=text], input[type=date], select, textarea {
+      width:100%; padding:8px 10px; font-size:14px;
+      border:0.5px solid var(--border); border-radius:8px;
+      background:var(--bg); outline:none;
+    }
+    input:focus, select:focus, textarea:focus { border-color:#aaa; box-shadow:0 0 0 2px rgba(0,0,0,.07); }
+    textarea { resize:vertical; min-height:70px; }
+    .actions { display:flex; gap:8px; margin-top:18px; }
+    button.primary { padding:8px 20px; font-size:14px; font-weight:500; background:var(--accent); color:#fff; border:none; border-radius:8px; cursor:pointer; }
+    button.primary:hover { background:#364fc7; }
+    a.cancel { padding:8px 16px; font-size:14px; border:0.5px solid var(--border); border-radius:8px; background:var(--card); text-decoration:none; color:#111; }
+    a.cancel:hover { background:#f0f0ee; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1><i class="ti ti-pencil"></i> Edit Task</h1>
+  <div class="card">
+    <form method="POST">
+      <div class="field">
+        <label>Task</label>
+        <textarea name="task">{{ task.text }}</textarea>
+      </div>
+      <div class="field">
+        <label>Priority</label>
+        <select name="priority">
+          <option value="high"   {% if task.priority=='high'   %}selected{% endif %}>🔴 High</option>
+          <option value="medium" {% if task.priority=='medium' %}selected{% endif %}>🟡 Medium</option>
+          <option value="low"    {% if task.priority=='low'    %}selected{% endif %}>🟢 Low</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Due Date</label>
+        <input type="date" name="due_date" value="{{ task.due_date.isoformat() if task.due_date else '' }}" min="{{ today }}" />
+      </div>
+      <div class="field">
+        <label>Tags (hold Ctrl/Cmd to select multiple)</label>
+        <select name="tags" multiple style="height:80px;">
+          {% for tag in all_tags %}
+          <option value="{{ tag.id }}" {% if tag in task.tags %}selected{% endif %}>{{ tag.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Add New Tag</label>
+        <input type="text" name="new_tag" placeholder="Type a new tag name…" />
+      </div>
+      <div class="actions">
+        <button type="submit" class="primary"><i class="ti ti-check"></i> Save</button>
+        <a href="/" class="cancel">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>To-Do List</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f5f3; --card: #fff; --border: #e0e0dd;
+      --text: #111; --muted: #888; --radius: 10px;
+      --high: #e03131; --medium: #f08c00; --low: #2f9e44;
+      --accent: #3b5bdb;
+    }
+    body { font-family: system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding: 2rem 1rem; }
+    .wrap { max-width: 680px; margin: 0 auto; }
+
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 1.5rem; display:flex; align-items:center; gap:8px; }
+
+    /* Flash messages */
+    .flash { padding: 8px 14px; border-radius: var(--radius); font-size: 13px; margin-bottom: 1rem; }
+    .flash.success { background:#d3f9d8; color:#2f9e44; }
+    .flash.error   { background:#ffe3e3; color:#c92a2a; }
+    .flash.info    { background:#e7f5ff; color:#1971c2; }
+
+    /* Stats bar */
+    .stats { display:flex; gap:12px; margin-bottom:1.25rem; flex-wrap:wrap; }
+    .stat-pill { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight:500; background:var(--card); border:0.5px solid var(--border); }
+    .stat-pill.overdue { background:#fff5f5; color:var(--high); border-color:#ffc9c9; }
+
+    /* Add form */
+    .add-card { background:var(--card); border:0.5px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:1.25rem; }
+    .add-card h2 { font-size:14px; font-weight:600; margin-bottom:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    .form-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    .form-row input[type=text], .form-row input[type=date], .form-row select {
+      padding: 7px 10px; font-size:14px; border:0.5px solid var(--border);
+      border-radius:8px; background:var(--bg); outline:none; flex:1; min-width:140px;
+    }
+    .form-row input:focus, .form-row select:focus { border-color:#aaa; box-shadow:0 0 0 2px rgba(0,0,0,.07); }
+    .tag-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:13px; color:var(--muted); }
+    .tag-row select { flex:1; min-width:140px; }
+    .tag-row input[type=text] { flex:1; min-width:120px; padding:6px 10px; font-size:13px; border:0.5px solid var(--border); border-radius:8px; background:var(--bg); outline:none; }
+    button.primary { padding:8px 18px; font-size:14px; font-weight:500; background:var(--accent); color:#fff; border:none; border-radius:8px; cursor:pointer; white-space:nowrap; }
+    button.primary:hover { background:#364fc7; }
+
+    /* Toolbar */
+    .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:1rem; }
+    .toolbar form { display:flex; gap:6px; flex:1; min-width:200px; }
+    .toolbar input[type=text] { flex:1; padding:6px 10px; font-size:13px; border:0.5px solid var(--border); border-radius:8px; background:var(--card); outline:none; }
+    .toolbar select { padding:6px 10px; font-size:13px; border:0.5px solid var(--border); border-radius:8px; background:var(--card); }
+    .btn { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; font-size:13px; border:0.5px solid var(--border); border-radius:8px; background:var(--card); cursor:pointer; text-decoration:none; color:var(--text); white-space:nowrap; }
+    .btn:hover { background:#f0f0ee; }
+    .btn.active { background:#e8e8f0; font-weight:600; border-color:#aab; color:var(--accent); }
+    .btn.danger { color:#c92a2a; border-color:#ffc9c9; }
+    .btn.danger:hover { background:#fff5f5; }
+
+    /* Filter tags */
+    .tag-filters { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:1rem; }
+    .tag-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:500; text-decoration:none; border:0.5px solid transparent; color:#fff; }
+    .tag-chip.inactive { opacity:.65; }
+    .tag-chip.inactive:hover { opacity:1; }
+
+    /* Task list */
+    ul { list-style:none; display:flex; flex-direction:column; gap:8px; }
+    li.task-card {
+      background:var(--card); border:0.5px solid var(--border);
+      border-radius:var(--radius); padding:12px 14px;
+      display:flex; align-items:flex-start; gap:10px;
+      transition: opacity .15s;
+    }
+    li.task-card.done-card { opacity:.6; }
+    li.task-card.overdue-card { border-left: 3px solid var(--high); }
+
+    li.task-card input[type=checkbox] { width:16px; height:16px; cursor:pointer; flex-shrink:0; margin-top:2px; }
+    .task-body { flex:1; min-width:0; }
+    .task-text { font-size:15px; word-break:break-word; }
+    .task-text.done { text-decoration:line-through; color:var(--muted); }
+    .task-meta { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:5px; }
+
+    .priority-badge { font-size:11px; font-weight:600; padding:2px 7px; border-radius:20px; }
+    .priority-badge.high   { background:#fff0f0; color:var(--high); }
+    .priority-badge.medium { background:#fff9db; color:var(--medium); }
+    .priority-badge.low    { background:#ebfbee; color:var(--low); }
+
+    .due-badge { font-size:11px; padding:2px 7px; border-radius:20px; background:#f1f3f5; color:var(--muted); display:flex; align-items:center; gap:3px; }
+    .due-badge.overdue { background:#fff0f0; color:var(--high); }
+
+    .tag-badge { font-size:11px; padding:2px 8px; border-radius:20px; color:#fff; font-weight:500; }
+
+    .task-actions { display:flex; gap:4px; flex-shrink:0; }
+    .icon-btn { border:none; background:none; padding:5px; cursor:pointer; color:var(--muted); border-radius:6px; }
+    .icon-btn:hover { background:#f0f0ee; color:var(--text); }
+    .icon-btn.del:hover { color:var(--high); background:#fff0f0; }
+
+    .empty-msg { text-align:center; color:var(--muted); font-size:14px; padding:3rem 0; }
+
+    /* Footer */
+    .footer { display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem; font-size:13px; color:var(--muted); flex-wrap:wrap; gap:8px; }
+
+    @media(max-width:480px) {
+      .form-row { flex-direction:column; }
+      .toolbar { flex-direction:column; align-items:stretch; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1><i class="ti ti-check"></i> To-Do List</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Stats -->
+  <div class="stats">
+    <span class="stat-pill">{{ active_count }} active</span>
+    {% if overdue_count > 0 %}
+    <span class="stat-pill overdue"><i class="ti ti-alert-circle"></i> {{ overdue_count }} overdue</span>
+    {% endif %}
+  </div>
+
+  <!-- Add Task -->
+  <div class="add-card">
+    <h2>New Task</h2>
+    <form action="/add" method="POST">
+      <div class="form-row">
+        <input type="text" name="task" placeholder="What needs to be done?" required autofocus />
+        <select name="priority">
+          <option value="high">🔴 High</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+        <input type="date" name="due_date" min="{{ today }}" />
+      </div>
+      <div class="tag-row">
+        <i class="ti ti-tag"></i>
+        <select name="tags" multiple style="height:36px;">
+          {% for tag in all_tags %}
+          <option value="{{ tag.id }}">{{ tag.name }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="new_tag" placeholder="+ New tag" />
+        <button type="submit" class="primary"><i class="ti ti-plus"></i> Add</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <form method="GET" action="/">
+      <input type="hidden" name="filter" value="{{ filter }}" />
+      <input type="hidden" name="sort" value="{{ sort }}" />
+      <input type="hidden" name="tag" value="{{ tag_filter }}" />
+      <input type="text" name="q" value="{{ search }}" placeholder="🔍 Search tasks…" />
+      <button type="submit" class="btn"><i class="ti ti-search"></i></button>
+    </form>
+    <select onchange="applySort(this.value)" style="padding:6px 10px; font-size:13px; border:0.5px solid var(--border); border-radius:8px; background:var(--card);">
+      <option value="created"  {% if sort=='created'  %}selected{% endif %}>Sort: Newest</option>
+      <option value="priority" {% if sort=='priority' %}selected{% endif %}>Sort: Priority</option>
+      <option value="due_date" {% if sort=='due_date' %}selected{% endif %}>Sort: Due Date</option>
+      <option value="alpha"    {% if sort=='alpha'    %}selected{% endif %}>Sort: A → Z</option>
+    </select>
+    <a href="/?filter=all&q={{ search }}&sort={{ sort }}"    class="btn {% if filter=='all'    %}active{% endif %}">All</a>
+    <a href="/?filter=active&q={{ search }}&sort={{ sort }}" class="btn {% if filter=='active' %}active{% endif %}">Active</a>
+    <a href="/?filter=done&q={{ search }}&sort={{ sort }}"   class="btn {% if filter=='done'   %}active{% endif %}">Done</a>
+  </div>
+
+  <!-- Tag filters -->
+  {% if all_tags %}
+  <div class="tag-filters">
+    {% for tag in all_tags %}
+    <a href="/?filter={{ filter }}&q={{ search }}&sort={{ sort }}&tag={% if tag_filter == tag.name %}{% else %}{{ tag.name }}{% endif %}"
+       class="tag-chip {% if tag_filter != tag.name %}inactive{% endif %}"
+       style="background:{{ tag.color }}; {% if tag_filter != tag.name %}background:{{ tag.color }}44; color:{{ tag.color }};{% endif %} border-color:{{ tag.color }};">
+      {{ tag.name }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Task list -->
+  {% if tasks %}
+  <ul>
+    {% for task in tasks %}
+    <li class="task-card {% if task.done %}done-card{% elif task.is_overdue %}overdue-card{% endif %}">
+      <a href="/toggle/{{ task.id }}">
+        <input type="checkbox" {{ 'checked' if task.done }} onclick="this.closest('a').click(); return false;" />
+      </a>
+      <div class="task-body">
+        <div class="task-text {% if task.done %}done{% endif %}">{{ task.text }}</div>
+        <div class="task-meta">
+          <span class="priority-badge {{ task.priority }}">
+            {{ '🔴' if task.priority=='high' else '🟡' if task.priority=='medium' else '🟢' }} {{ task.priority|capitalize }}
+          </span>
+          {% if task.due_date %}
+          <span class="due-badge {% if task.is_overdue %}overdue{% endif %}">
+            <i class="ti ti-calendar"></i>
+            {{ task.due_date.strftime('%b %d, %Y') }}
+            {% if task.is_overdue %} · Overdue{% endif %}
+          </span>
+          {% endif %}
+          {% for tag in task.tags %}
+          <span class="tag-badge" style="background:{{ tag.color }};">{{ tag.name }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="task-actions">
+        <a href="/edit/{{ task.id }}" class="icon-btn" title="Edit"><i class="ti ti-pencil"></i></a>
+        <a href="/delete/{{ task.id }}" class="icon-btn del" title="Delete" onclick="return confirm('Delete this task?')"><i class="ti ti-trash"></i></a>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty-msg">
+    {% if search %}No tasks match "{{ search }}"{% else %}No tasks yet — add one above!{% endif %}
+  </p>
+  {% endif %}
+
+  <!-- Footer -->
+  {% if tasks %}
+  <div class="footer">
+    <span>{{ active_count }} task{{ 's' if active_count != 1 }} remaining</span>
+    <a href="/clear-done" class="btn danger" onclick="return confirm('Clear all completed tasks?')">
+      <i class="ti ti-trash"></i> Clear done
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+<script>
+function applySort(val) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('sort', val);
+  window.location.href = url.toString();
+}
+</script>
+</body>
+</html>
