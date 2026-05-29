@@ -9,7 +9,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 # ── Database config ────────────────────────────────────────────────────────────
 # Swap DATABASE_URL env var for RDS in production:
 #   postgresql://user:pass@your-rds-endpoint:5432/todos
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///todos.db")
+os.makedirs("/app/data", exist_ok=True)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:////app/data/todos.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
