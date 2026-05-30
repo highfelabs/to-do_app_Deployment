@@ -9,7 +9,7 @@ env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: to-do_app
   ECR_REGISTRY: 704225640883.dkr.ecr.us-east-1.amazonaws.com
-  IMAGE_TAG: v1
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
 
@@ -59,17 +59,17 @@ jobs:
 
     - name: Build Docker Image
       run: |
-        docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+        docker build -t $ECR_REPOSITORY:${{ github.sha }} .
 
     - name: Tag Docker Image
       run: |
-        docker tag $ECR_REPOSITORY:$IMAGE_TAG \
-        $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $ECR_REPOSITORY:${{ github.sha }} \
+        $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
     - name: Push Docker Image
       run: |
         docker push \
-        $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
   deploy:
 
@@ -97,9 +97,9 @@ jobs:
           --parameters '{
             "commands":[
               "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 704225640883.dkr.ecr.us-east-1.amazonaws.com",
-              "docker pull 704225640883.dkr.ecr.us-east-1.amazonaws.com/to-do_app:v1",
+              "docker pull 704225640883.dkr.ecr.us-east-1.amazonaws.com/to-do_app:${{ github.sha }}",
               "docker stop myapp || true",
               "docker rm myapp || true",
-              "docker run -d --name myapp -p 5000:5000 -v myapp-data:/app/data 704225640883.dkr.ecr.us-east-1.amazonaws.com/to-do_app:v1"
+              "docker run -d --name myapp -p 5000:5000 -v myapp-data:/app/data 704225640883.dkr.ecr.us-east-1.amazonaws.com/to-do_app:${{ github.sha }}"
             ]
         }'
